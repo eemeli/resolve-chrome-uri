@@ -1,6 +1,9 @@
 import { access, readdir, readFile } from 'fs/promises'
 import { dirname, relative, resolve } from 'path'
 
+import { getCacheValue, setCacheValue } from './cache.js'
+export { clearCache } from './cache.js'
+
 /**
  * @param {string} root
  * @param {string} uri
@@ -98,6 +101,9 @@ export async function resolveChromeUri(root, uri) {
  */
 
 async function getRegistry(root) {
+  const cached = await getCacheValue(root)
+  if (cached) return cached
+
   const registry = { content: {}, locale: {}, resource: {} }
   for (const jarPath of await getManifestPaths(root)) {
     let dir = relative(root, dirname(jarPath))
@@ -122,6 +128,8 @@ async function getRegistry(root) {
       else reg[pkgName].push(entry)
     }
   }
+
+  await setCacheValue(root, registry)
   return registry
 }
 
