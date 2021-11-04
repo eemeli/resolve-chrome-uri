@@ -2,13 +2,16 @@ import { mkdir, readdir, readFile, rm, writeFile } from 'fs/promises'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 
+// Update when registry structure changes
+const VERSION = 2
+
 function getCacheDir() {
   const root = dirname(fileURLToPath(import.meta.url))
   return resolve(root, '.cache')
 }
 
 function getCachePath(key) {
-  const hash = Buffer.from(key).toString('base64')
+  const hash = Buffer.from(VERSION + key).toString('base64')
   return resolve(getCacheDir(), hash)
 }
 

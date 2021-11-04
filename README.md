@@ -2,6 +2,7 @@
 
 A really hacky utility for resolving `chrome://` URIs into file paths under mozilla-central.
 Internally, parses `%` lines from `jar.mn` files and then looks around.
+Falls back to matching file names.
 Results are cached to disk, as this is a bit slow.
 Supports only `content` and `locale` URIs.
 

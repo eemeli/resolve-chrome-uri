@@ -1,5 +1,5 @@
 import { access, readdir, readFile } from 'fs/promises'
-import { dirname, relative, resolve } from 'path'
+import { basename, dirname, relative, resolve } from 'path'
 
 import { getCacheValue, setCacheValue } from './cache.js'
 export { clearCache } from './cache.js'
@@ -68,6 +68,18 @@ export async function resolveChromeUri(root, uri) {
     return reg[uri] || reg
   }
 
+  if (found.size === 0) {
+    if (uri.endsWith('.properties')) {
+      const end = '/' + basename(uri)
+      for (const path of reg.paths.properties)
+        if (path.endsWith(end)) found.add(path)
+    } else if (uri.endsWith('.xhtml')) {
+      const end = '/' + basename(uri)
+      for (const path of reg.paths.xhtml)
+        if (path.endsWith(end)) found.add(path)
+    }
+  }
+
   return found
 }
 
@@ -104,8 +116,9 @@ async function getRegistry(root) {
   const cached = await getCacheValue(root)
   if (cached) return cached
 
-  const registry = { content: {}, locale: {}, resource: {} }
-  for (const jarPath of await getManifestPaths(root)) {
+  const paths = await getFilePaths(root)
+  const registry = { content: {}, locale: {}, resource: {}, paths }
+  for (const jarPath of paths.jar) {
     let dir = relative(root, dirname(jarPath))
     const src = await readFile(jarPath, 'utf8')
     for (const line of src.matchAll(
@@ -134,16 +147,27 @@ async function getRegistry(root) {
 }
 
 /** @param {string} root */
-async function getManifestPaths(root) {
-  const jarPaths = []
+async function getFilePaths(root) {
+  /** @type {{ jar: string[], properties: string[], xhtml: string[] }} */
+  const paths = { jar: [], properties: [], xhtml: [] }
   for (const ent of await readdir(root, { withFileTypes: true })) {
     if (ent.isDirectory()) {
-      if (ent.name === 'test' || ent.name === 'tests') continue
-      const jp = await getManifestPaths(resolve(root, ent.name))
-      if (jp.length > 0) Array.prototype.push.apply(jarPaths, jp)
-    } else if (ent.name === 'jar.mn') jarPaths.push(resolve(root, ent.name))
+      if (
+        ent.name === 'test' ||
+        ent.name === 'tests' ||
+        ent.name.startsWith('obj-')
+      )
+        continue
+      const fp = await getFilePaths(resolve(root, ent.name))
+      for (const key of Object.keys(paths))
+        if (fp[key].length > 0) Array.prototype.push.apply(paths[key], fp[key])
+    } else if (ent.name === 'jar.mn') paths.jar.push(resolve(root, ent.name))
+    else if (ent.name.endsWith('.properties'))
+      paths.properties.push(resolve(root, ent.name))
+    else if (ent.name.endsWith('.xhtml'))
+      paths.xhtml.push(resolve(root, ent.name))
   }
-  return jarPaths
+  return paths
 }
 
 const _subDirCache = new Map()
