@@ -20,7 +20,7 @@ export async function resolveChromeUri(root, uri) {
     switch (section) {
       case 'locale': {
         const rp = reg.locale[pkgName]
-        if (!rp) throw new Error(`Unknown package ${pkgName}`)
+        if (!rp) throw new Error(`Unknown package ${pkgName} in ${uri}`)
         for (const { dir, uri } of rp) {
           const lcRoot = resolve(root, dir, 'en-US')
 
@@ -41,7 +41,7 @@ export async function resolveChromeUri(root, uri) {
 
       case 'content': {
         const rp = reg.content[pkgName]
-        if (!rp) throw new Error(`Unknown package ${pkgName}`)
+        if (!rp) throw new Error(`Unknown package ${pkgName} in ${uri}`)
         for (const { dir, uri } of rp) {
           let path = resolve(
             root,
